@@ -20,7 +20,7 @@ public class Main {
         pageUrl = UserInput.nextLine();
 
         if (!pageUrl.contains("http://")) {
-            // evita problemas al escribir una url en consola
+            // de esta forma no hay que escribir http://
             pageUrl = String.format("http://%s", pageUrl);
         }
 
@@ -63,22 +63,35 @@ public class Main {
     }
 
     private static void sendPostRequest (Document doc) {
-
+        String url = "";
         for (Element form : doc.getElementsByTag("form")) {
             if (form.attr("method").equalsIgnoreCase("post")) {
                 String sendUrl = form.attr("action").contains("http") ? form.attr("action") : String.format("%s%s", pageUrl, form.attr("action"));
+                int index = sendUrl.lastIndexOf('/');
+
+                if (sendUrl.contains("https")) {
+                    url = sendUrl;
+                } else {
+                    String protocol = sendUrl.substring(0, 4);
+                    if (protocol.equalsIgnoreCase("https")) {
+                        String tmp = sendUrl.substring(8);
+                        String[] tmpUrl = tmp.split("/");
+                        url = tmpUrl[0] + form.attr("action");
+                    } else {
+                        String tmp = sendUrl.substring(7);
+                        String[] tmpUrl = tmp.split("/");
+                        url = protocol + "://" + tmpUrl[0] + form.attr("action");
+                    }
+                }
+
 
                 try {
-                    Connection.Response response = Jsoup.connect(sendUrl)
-                            .data("asignatura", "practica1")
-                            .header("matricula", "20160522")
-                            .method(Connection.Method.POST)
-                            .execute();
-
-                    System.out.println(String.format("Respuesta de header:\n%s", response.headers().toString()));
+                    Document request = Jsoup.connect(url).header("matricula", "20160522").data("asignatura", "practica1").post();
+                    System.out.println("Respuesta Form:");
+                    System.out.println(request.html());
+                    System.out.println();
 
                 } catch (Exception e) {
-
                     System.out.println("Ha ocurrido un error");
                     System.exit(0);
                 }
